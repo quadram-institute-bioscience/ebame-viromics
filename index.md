@@ -3,12 +3,13 @@ layout: index
 published: true
 ---
 
-> Viromics tutorial for the [**9th EBAME workshop**](https://maignienlab.gitlab.io/ebame/).
+> Viromics tutorial for the [**10th EBAME workshop**](https://maignienlab.gitlab.io/ebame/)
+> with Evelien Adriaenssens and Andrea Telatin
 
 In this tutorial we will mine for phage sequences in a metagenome assembly.
 
-Checking their quality, we can then select some of the predictions as candidate "Viral [OTUs](https://en.wikipedia.org/
-wiki/Operational_taxonomic_unit)" (vOTUs).
+Checking their quality, we can then select some of the predictions as candidate 
+"Viral [OTUs](https://en.wikipedia.org/wiki/Operational_taxonomic_unit)" (vOTUs).
 
 When you have multiple samples, you can **back-map the reads** to the vOTUs to estimate their abundance in the original samples.
 
