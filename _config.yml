@@ -3,6 +3,8 @@ markdown: kramdown
 highlighter: rouge
 kramdown:
   syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    css_class: "highlight"
 
 permalink: /:categories/:title/
 
