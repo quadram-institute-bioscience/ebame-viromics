@@ -187,7 +187,7 @@ sudo apt update 2>/dev/null 1>/dev/null
 # Write a blue line ending with \r to be erased with the text "hello"
 
 
-if sudo apt install -y --quiet unzip  bat visidata pv tree mc libpcre3-dev >/tmp/ebame-apt.out 2>/tmp/ebame-apt.err; then
+if sudo apt install -y --quiet openjdk-21-jre-headless pipx unzip  bat visidata pv tree mc libpcre3-dev >/tmp/ebame-apt.out 2>/tmp/ebame-apt.err; then
     if [[ ! -e  ~/bin/bat ]]; then
         ln -s /usr/bin/batcat ~/bin/bat
         
@@ -218,7 +218,7 @@ else
 fi
 
 # add $HOME/bin to PATH in .bashrc
-STRING='export PATH=$PATH:$HOME/bin/'
+STRING='export PATH=$PATH:$HOME/.local/bin:$HOME/bin/'
 # append STRING to FILE
 if grep -q "$STRING" "$FILE"; then
     touch /tmp/ebame-path.stone
@@ -259,6 +259,69 @@ is_conda_initialized() {
     grep -q "# >>> conda initialize >>>" ~/.bashrc
 }
 
+# cleanup
+for FILE in ~/zellij-x86_64-unknown-linux-musl.* ~/SeqFu-v1*.zip /tmp/seqfu.zip; 
+do
+    if [[ -e $FILE ]]; then
+        rm "$FILE"
+    fi
+done
+
+# Nextflow
+#!/bin/bash
+
+# Silent Nextflow installation function
+# Returns: 0 on success, 1 on failure
+# Sets ERROR_MSG variable on failure
+install_nf() {
+    local bin_dir="$HOME/bin"
+    local temp_dir
+    
+    # Create bin directory if it doesn't exist
+    if ! mkdir -p "$bin_dir" 2>/dev/null; then
+        ERROR_MSG="Failed to create directory: $bin_dir"
+        return 1
+    fi
+    
+    # Create temporary directory for download
+    if ! temp_dir=$(mktemp -d 2>/dev/null); then
+        ERROR_MSG="Failed to create temporary directory"
+        return 1
+    fi
+    
+    # Download Nextflow (silent mode with -s flag)
+    cd "$temp_dir" || {
+        ERROR_MSG="Failed to change to temporary directory"
+        rm -rf "$temp_dir"
+        return 1
+    }
+    
+    if ! curl -fsSL https://get.nextflow.io | bash > /dev/null 2>&1; then
+        ERROR_MSG="Failed to download Nextflow from https://get.nextflow.io"
+        rm -rf "$temp_dir"
+        return 1
+    fi
+    
+    # Move to bin directory and make executable
+    if ! mv nextflow "$bin_dir/nextflow" 2>/dev/null; then
+        ERROR_MSG="Failed to move nextflow to $bin_dir"
+        rm -rf "$temp_dir"
+        return 1
+    fi
+    
+    
+    # Cleanup
+    rm -rf "$temp_dir"
+
+    return 0
+}
+
+# Call installation and print result
+if install_nf; then
+    echo "OK"
+else
+    echo "FAIL: $ERROR_MSG"
+fi
 
 # Attempt to initialize Conda if necessary
 if command -v conda >/dev/null 2>&1; then
@@ -278,6 +341,12 @@ else
     yellow_bold "INFO" "Conda not found, please manually run: '/var/lib/miniforge/bin/conda init'"
 fi
 
+if pipx install votuderep;
+then
+    green_bold "OK" "votuderep installed successfully"
+else
+    red_bold "ERROR" "votuderep installation failed"
+fi
 # Final message
 echo -e "\033[1;32m===\t\033[0m Setup completed \033[1;32m===\t\033[0m"
 echo ""
