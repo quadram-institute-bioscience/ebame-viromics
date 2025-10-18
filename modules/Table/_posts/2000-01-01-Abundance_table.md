@@ -11,7 +11,7 @@ The mapping of reads against the co-assembly allows us to *quantify* the coverag
 
 We can use **CoverM** to produce an abundance table from a set of BAM files.
 
-![Coverm workflow]({{ site.baseurl }}{% link img/coverm.svg %})
+![Coverm workflow]({{ site.baseurl }}{% link img/coverm.png %})
 
 ## Installing CoverM
 
