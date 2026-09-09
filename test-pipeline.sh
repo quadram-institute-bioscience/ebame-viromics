@@ -341,15 +341,38 @@ step_verify_inputs() {
 
 step_env_genomad() { ensure_env "$GENOMAD_ENV" genomad=1.9 seqfu=1.22; }
 
+# A directory existing is not proof a multi-GB database download actually
+# completed (a truncated/interrupted download can still leave a directory
+# with *some* files in it). Sanity-check size and file count before trusting
+# it, whether it's one we just downloaded or one found lying around.
+genomad_db_looks_complete() {
+  local d="$1" n size_mb
+  [[ -d "$d" ]] || return 1
+  n=$(find "$d" -type f 2>/dev/null | wc -l | tr -d ' ')
+  size_mb=$(du -sm "$d" 2>/dev/null | cut -f1)
+  [[ "${n:-0}" -ge 5 && "${size_mb:-0}" -ge 500 ]]
+}
+
 step_db_genomad() {
   resolve_dbs
   if [[ -n "$GENOMAD_DB_DIR" ]]; then
     info "  using pre-existing geNomad DB: $GENOMAD_DB_DIR"
     return 0
   fi
-  rm -rf "$DB_DIR/genomad_db"
+  GENOMAD_DB_DIR="$DB_DIR/genomad_db"
+
+  if genomad_db_looks_complete "$GENOMAD_DB_DIR"; then
+    info "  existing geNomad DB at $GENOMAD_DB_DIR looks complete, reusing (no download needed)"
+    return 0
+  fi
+
+  rm -rf "$GENOMAD_DB_DIR"
   crun "$GENOMAD_ENV" genomad download-database "$DB_DIR" || return 1
-  [[ -d "$DB_DIR/genomad_db" ]] || { err "  geNomad DB download did not produce $DB_DIR/genomad_db"; return 1; }
+  if ! genomad_db_looks_complete "$GENOMAD_DB_DIR"; then
+    err "  geNomad DB at $GENOMAD_DB_DIR still looks incomplete after download — removing so the next run redownloads cleanly"
+    rm -rf "$GENOMAD_DB_DIR"
+    return 1
+  fi
 }
 
 step_run_genomad() {
@@ -375,24 +398,74 @@ step_rename_genomad() {
   mv "$out.tmp" "$out"
 }
 
-step_env_checkv() { ensure_env "$CHECKV_ENV" checkv; }
+step_env_checkv() { ensure_env "$CHECKV_ENV" checkv diamond; }
+
+# Verify (and, where possible, locally repair) a CheckV database.
+#
+# Some checkv-db-v1.5 tarball builds only ship the BLAST-era protein FASTA
+# (genome_db/checkv_reps.faa), while newer checkv releases require a DIAMOND
+# index (genome_db/checkv_reps.dmnd) instead and fail with "database file
+# not found" at the very end of `checkv end_to_end`, after most of the run
+# already completed. Treating the download as "done" just because the
+# directory exists (as an earlier version of this script did) means that
+# failure gets hit on every single run without ever being fixed — exactly
+# the kind of silently-accepted partial state this script is meant to avoid.
+#
+# If the fasta is present we build the missing index locally (fast, no
+# network needed); if even the fasta is missing the DB is genuinely
+# incomplete/corrupt and the caller should wipe it and redownload.
+ensure_checkv_db_complete() {
+  local db="$1"
+  local dmnd="$db/genome_db/checkv_reps.dmnd"
+  local faa="$db/genome_db/checkv_reps.faa"
+
+  [[ -s "$dmnd" ]] && return 0
+
+  if [[ -s "$faa" ]]; then
+    warn "  $db is missing genome_db/checkv_reps.dmnd (known checkv/db version mismatch) — building it locally with 'diamond makedb'"
+    crun "$CHECKV_ENV" diamond makedb --in "$faa" --db "$db/genome_db/checkv_reps" --threads "$THREADS" || {
+      err "  'diamond makedb' failed to build checkv_reps.dmnd"
+      return 1
+    }
+    [[ -s "$dmnd" ]] || { err "  checkv_reps.dmnd still missing after 'diamond makedb'"; return 1; }
+    return 0
+  fi
+
+  err "  $db looks incomplete: neither genome_db/checkv_reps.dmnd nor genome_db/checkv_reps.faa found"
+  return 1
+}
 
 step_db_checkv() {
   resolve_dbs
   if [[ -n "$CHECKV_DB_DIR" ]]; then
     info "  using pre-existing CheckV DB: $CHECKV_DB_DIR"
+    ensure_checkv_db_complete "$CHECKV_DB_DIR" || return 1
     return 0
   fi
-  rm -rf "$DB_DIR"/checkv-db-*
-  crun "$CHECKV_ENV" checkv download_database "$DB_DIR" || return 1
+
   CHECKV_DB_DIR="$(find "$DB_DIR" -maxdepth 1 -type d -iname 'checkv-db-*' 2>/dev/null | sort | tail -n1)"
-  [[ -n "$CHECKV_DB_DIR" ]] || { err "  CheckV DB download did not produce a checkv-db-* directory"; return 1; }
+
+  if [[ -z "$CHECKV_DB_DIR" ]]; then
+    info "  downloading CheckV database"
+    crun "$CHECKV_ENV" checkv download_database "$DB_DIR" || return 1
+    CHECKV_DB_DIR="$(find "$DB_DIR" -maxdepth 1 -type d -iname 'checkv-db-*' 2>/dev/null | sort | tail -n1)"
+    [[ -n "$CHECKV_DB_DIR" ]] || { err "  CheckV DB download did not produce a checkv-db-* directory"; return 1; }
+  else
+    info "  found existing download at $CHECKV_DB_DIR, verifying it before reusing"
+  fi
+
+  if ! ensure_checkv_db_complete "$CHECKV_DB_DIR"; then
+    warn "  $CHECKV_DB_DIR cannot be repaired locally — removing it so the next run redownloads from scratch"
+    rm -rf "$CHECKV_DB_DIR"
+    return 1
+  fi
 }
 
 step_run_checkv() {
   resolve_dbs
   [[ -n "$CHECKV_DB_DIR" ]] || CHECKV_DB_DIR="$(find "$DB_DIR" -maxdepth 1 -type d -iname 'checkv-db-*' 2>/dev/null | sort | tail -n1)"
   [[ -n "$CHECKV_DB_DIR" && -d "$CHECKV_DB_DIR" ]] || { err "  CheckV DB not found under $DB_DIR"; return 1; }
+  ensure_checkv_db_complete "$CHECKV_DB_DIR" || return 1
 
   rm -rf "$CHECKV_OUT"
   crun "$CHECKV_ENV" checkv end_to_end "$GENOMAD_OUT/genomad_votus.fna" "$CHECKV_OUT" -d "$CHECKV_DB_DIR" -t "$THREADS" || return 1
