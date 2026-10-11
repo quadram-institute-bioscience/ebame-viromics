@@ -26,6 +26,14 @@ else
     VMNAME="$1"
 fi
 
+# Ensure HOME is set: some provisioning environments (cloud-init, sudo, agents)
+# leave it empty, which makes "$HOME/bin" expand to /bin while "~" still
+# resolves to the real home directory, breaking paths below.
+if [ -z "${HOME:-}" ]; then
+    HOME="$(getent passwd "$(id -u)" | cut -d: -f6)"
+fi
+export HOME
+
 
 
 backup_file="$HOME/.bashrc.backup"
@@ -191,7 +199,8 @@ sudo apt update 2>/dev/null 1>/dev/null
 
 if sudo apt install -y --quiet openjdk-21-jre-headless pipx unzip  bat visidata pv tree mc libpcre3-dev >/tmp/ebame-apt.out 2>/tmp/ebame-apt.err; then
     if [[ ! -e  ~/bin/bat ]]; then
-        ln -s /usr/bin/batcat ~/bin/bat
+        mkdir -p ~/bin
+        ln -sf /usr/bin/batcat ~/bin/bat
         
     fi
     write_log "$TAG" "apt - OK"
@@ -354,14 +363,22 @@ IBIS_PATH=/ifb/data/public/teachdata/ebame/viral-metagenomics/
 if [ -d "$IBIS_PATH" ]; 
 then
     # Cloudbis
-    ln -s ${IBIS_PATH}/genomad_db ~/db/genomad_db
+    ln -sfn "${IBIS_PATH}/genomad_db" ~/db/genomad_db
     green_bold "OK" "Linked Genomad database from Cloudbis"
     write_log "$TAG" "Genomad link - OK"
-    ln -s ${IBIS_PATH}/checkv-db-v1.5 ~/db/checkv-db-v1.5
+    ln -sfn "${IBIS_PATH}/checkv-db-v1.5" ~/db/checkv-db-v1.5
     green_bold "OK" "Linked CheckV database from Cloudbis"
     write_log "$TAG" "CheckV link - OK"
 else
-    yellow_bold "WARNING" "Could not find IBIS_PATH: ${IBIS_PATH}, skipping database linking"
+    # Fallback: VM without the /ifb mount, download the databases
+    yellow_bold "WARN" "No mounted databases found in ${IBIS_PATH}"
+    if "$HOME/.local/bin/votuderep" getdbs -o ~/db/; then
+        green_bold "OK" "Downloaded databases with votuderep getdbs"
+        write_log "$TAG" "getdbs - OK"
+    else
+        red_bold "ERROR" "Could not download databases (run: votuderep getdbs -o ~/db/)"
+        write_log "$TAG" "getdbs - failed"
+    fi
 fi
 
 
