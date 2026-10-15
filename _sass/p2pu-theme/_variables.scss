@@ -57,24 +57,35 @@ $green:   #28a745 !default;
 $teal:    #20c997 !default;
 $cyan:    #17a2b8 !default;
 
-$p2pu-blue:     #029fde;
-$p2pu-green:    #b2c720;
-$p2pu-yellow:   #FFBC1A;
-$p2pu-orange:   #FC7100;
+// Brand palette
+$charcoal:      #2F3D46;
+$dark-green:    #097E74; // primary accent
+$acid-green:    #B6BE00; // pairs with charcoal
+// Secondary palette (highlights, charts)
+$dark-orange:   #CF4520;
+$light-orange:  #FF9E1B;
+$grass-green:   #48A23F;
+$cerulean:      #00778B;
+
+// Legacy p2pu names, now mapped onto the brand palette
+$p2pu-blue:     $dark-green;
+$p2pu-green:    $grass-green;
+$p2pu-yellow:   $light-orange;
+$p2pu-orange:   $dark-orange;
 
 $p2pu-light-blue:       transparentize($p2pu-blue, 0.85);
 $p2pu-light-green:      transparentize($p2pu-green, 0.85);
 $p2pu-light-yellow:     transparentize($p2pu-yellow, 0.85);
 $p2pu-light-orange:     transparentize($p2pu-orange, 0.85);
 
-$primary:       $gray-darker;
+$primary:       $dark-green;
 $secondary:     $gray-lighter;
 $success:       $p2pu-green;
-$info:          $p2pu-blue;
+$info:          $cerulean;
 $warning:       $p2pu-yellow;
 $danger:        $p2pu-orange;
 $light:         $gray-snow;
-$dark:          $gray-darker;
+$dark:          $charcoal;
 
 $colors: () !default;
 // stylelint-disable-next-line scss/dollar-variable-default
@@ -182,14 +193,14 @@ $sizes: map-merge(
 // Settings for the `<body>` element.
 
 $body-bg:                   $white;
-$body-color:                $gray-darker;;
+$body-color:                $charcoal;
 
 // Links
 //
 // Style anchor elements.
 
 
-$link-color:                $p2pu-blue;
+$link-color:                $dark-green;
 $link-decoration:           none !default;
 $link-hover-color:          darken($link-color, 15%);
 $link-hover-decoration:     underline !default;
@@ -298,7 +309,7 @@ $h6-font-size:                $font-size-base !default;
 
 $headings-margin-bottom:      ($spacer / 2);
 $headings-margin-top:         $spacer;
-$headings-font-family:        "Arvo", Helvetica, Arial, sans-serif;
+$headings-font-family:        "Saira", "Exo 2", Helvetica, Arial, sans-serif;
 $headings-font-weight:        $font-weight-bold;
 $headings-line-height:        1.1;
 $headings-color:              inherit !default;
@@ -964,7 +975,7 @@ $close-text-shadow:                 0 1px 0 $white !default;
 // Code
 
 $code-font-size:                    87.5% !default;
-$code-color:                        $pink !default;
+$code-color:                        $dark-orange !default;
 
 $kbd-padding-y:                     .2rem !default;
 $kbd-padding-x:                     .4rem !default;

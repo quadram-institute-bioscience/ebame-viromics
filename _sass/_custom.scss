@@ -1,7 +1,8 @@
 body {
 	background-color: white;
   h1, h2, h3, h4, h5, h6 {
-    font-weight: 400;
+    font-family: $headings-font-family;
+    font-weight: 500;
   }
 }
 
@@ -12,14 +13,24 @@ body {
 }
 
 .navbar {
+  background-color: $charcoal !important;
+
   a, .nav-link, button {
     color: rgba(255, 255, 255, 0.8);
     text-transform: uppercase;
   }
 }
 
+.nav-item {
+  border-bottom: 3px solid transparent;
+}
+
+.nav-item.active {
+  border-bottom-color: $acid-green;
+}
+
 .nav-item.active, .nav-item:hover {
-  background-color: #707782;
+  background-color: $dark-green;
 	transition: all 0.3s linear;
 }
 
@@ -36,7 +47,7 @@ body {
   text-shadow: 5px 5px 10px $gray-darker;
 
 	a {
-		color: #fcfcfc;
+		color: $acid-green;
 		border-bottom: 1px dotted;
 		text-decoration: none;
 		transition: all 0.3s linear;
@@ -66,14 +77,14 @@ blockquote {
   padding: 1.2em;
   margin: 0;
   border: 0;
-  background: #DFF7F4;
+  background: transparentize($dark-green, 0.9);
   font-style: normal;
   font-size: inherit;
-  border-left: 7px solid $p2pu-light-blue;
+  border-left: 7px solid $dark-green;
 }
 
 pre {
-  border-left: 7px solid $gray-light;
+  border-left: 7px solid $acid-green;
   padding: 1em;
   background-color: $gray-lighter;
   line-height: 1.2;
@@ -107,7 +118,7 @@ section {
 }
 
 .sidebar li:hover {
-	background-color: #029fde;
+	background-color: $dark-green;
 
 	a:hover, a:focus {
 		text-decoration: none;
@@ -123,7 +134,7 @@ section {
 }
 
 .sidebar li.active a:hover {
-	color: #0077bb;
+	color: $dark-green;
 }
 
 .sidebar li a {
@@ -166,7 +177,7 @@ section {
 
   .sidebar li:before {
     content: "";
-    border-left: 3px solid #aab0bf;
+    border-left: 3px solid transparentize($charcoal, 0.7);
     position: absolute;
     left: 40px;
     height: 100%;
@@ -195,7 +206,7 @@ section {
   .sidebar li a:before {
     content: "\f005";
     font-family: FontAwesome;
-    color: #0077bb;
+    color: $dark-green;
     position: absolute;
     left: 29px;
     line-height: 1.7;
@@ -244,7 +255,7 @@ section {
 		top: 0;
 		right: 0;
     padding: 0 5px;
-    background-color: $gray-darker;
+    background-color: $charcoal;
     color: white;
     font-size: 12pt;
     font-style: italic;
@@ -262,8 +273,9 @@ section {
 
 footer {
   padding: 2em 0;
-  background-color: $gray-dark;
+  background-color: $charcoal;
   color: $gray-lighter;
+  border-top: 4px solid $acid-green;
   text-align: center;
   font-size: 12pt;
   a {
@@ -274,7 +286,7 @@ footer {
   }
   a:hover {
     border: none;
-    color: #FCFCFC;
+    color: $acid-green;
     text-decoration: none;
     transition: all 0.3s linear;
   }
