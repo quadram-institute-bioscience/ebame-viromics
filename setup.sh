@@ -192,6 +192,7 @@ else
     write_log "$TAG" "Total memory - failed"
 fi
 
+green_bold "OK" "Starting to download packages... might take a while"
 sudo apt update 2>/dev/null 1>/dev/null
 
 # Write a blue line ending with \r to be erased with the text "hello"
@@ -212,14 +213,13 @@ fi
 
 # Install seqfu
 
-URL="https://github.com/telatin/seqfu2/releases/download/v1.22.3/SeqFu-v1.22.3-Linux-x86_64.zip"
+URL="https://github.com/telatin/seqfu2/releases/download/v1.29.0/seqfu-linux-x86_64"
 if [[ -e ~/bin/seqfu ]]; then
     VER=$("$HOME"/bin/seqfu version)
     green_bold "OK" "SeqFu already installed: $VER"
     write_log "$TAG" "seqfu - existing"
 else
-    if curl -sSL -o /tmp/seqfu.zip "$URL"; then
-        unzip -q -d "$HOME"/ /tmp/seqfu.zip
+    if curl -fsSL -o /tmp/seqfu "$URL" && chmod +x /tmp/seqfu && mv /tmp/seqfu "$HOME/bin/seqfu"; then
         green_bold "OK" "Installed SeqFu"
         write_log "$TAG" "seqfu installation - OK"
     else
@@ -271,7 +271,7 @@ is_conda_initialized() {
 }
 
 # cleanup
-for FILE in ~/zellij-x86_64-unknown-linux-musl.* ~/SeqFu-v1*.zip /tmp/seqfu.zip; 
+for FILE in ~/zellij-x86_64-unknown-linux-musl.* /tmp/seqfu; 
 do
     if [[ -e $FILE ]]; then
         rm "$FILE"
