@@ -192,7 +192,7 @@ else
     write_log "$TAG" "Total memory - failed"
 fi
 
-green_bold "OK" "Starting to download packages... might take a while"
+yellow_bold "WAIT" "Starting to download packages... might take a while"
 sudo apt update 2>/dev/null 1>/dev/null
 
 # Write a blue line ending with \r to be erased with the text "hello"
