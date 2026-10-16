@@ -235,7 +235,7 @@ fi
 
 # Install seqfu
 
-URL="https://github.com/telatin/seqfu2/releases/download/v1.29.0/seqfu-linux-x86_64"
+URL="https://github.com/quadram-institute-bioscience/seqfu_v1/releases/download/v1.30.3/seqfu-linux-x86_64"
 if [[ -e ~/bin/seqfu ]]; then
     VER=$("$HOME"/bin/seqfu version)
     green_bold "OK" "SeqFu already installed: $VER"
