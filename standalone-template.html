@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <!-- ===================================================================
+       Standalone page template — inspired by the EBAME Viromics course site
+       (Course-in-a-Box structure: hero + content column + dark footer).
+       The top navbar is intentionally omitted.
+
+       Everything needed to render the page lives in this file (inline CSS).
+       Only the web fonts are optional/external — remove the <link> below
+       to keep the file 100% offline; it falls back to system fonts.
+       =================================================================== -->
+
+  <title>Page title · Viromics workshop</title>
+  <meta name="description" content="Short description of this page.">
+
+  <!-- Optional: theme fonts (Saira for headings, Open Sans for text) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css?family=Saira:400,500,700|Open+Sans:400,700&display=swap">
+
+  <style>
+    /* ----- Theme palette (from _sass/p2pu-theme/_variables.scss) ----- */
+    :root {
+      --charcoal:     #2F3D46;
+      --dark-green:   #097E74;  /* primary accent */
+      --acid-green:   #B6BE00;  /* pairs with charcoal */
+      --gray-darker:  #515665;
+      --gray-dark:    #707782;
+      --gray:         #AAB0BF;
+      --gray-light:   #D3D8E6;
+      --gray-lighter: #F3F4F8;
+      --gray-snow:    #FCFCFC;
+      --white:        #fff;
+
+      --font-body:     "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      --font-headings: "Saira", "Exo 2", Helvetica, Arial, sans-serif;
+      --font-mono:     SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { height: 100%; }
+
+    /* Sticky footer: body is a column, main grows to fill the viewport */
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: var(--white);
+      color: var(--charcoal);
+      font-family: var(--font-body);
+      font-size: 18px;
+      line-height: 1.5;
+    }
+
+    main { flex: 1 0 auto; background: var(--white); }
+
+    /* ----- Layout ----- */
+    .container { width: 100%; max-width: 1140px; margin: 0 auto; padding: 0 15px; }
+
+    .layout { display: flex; flex-wrap: wrap; gap: 30px; align-items: flex-start; }
+
+    /* ----- Content column ----- */
+    .content { flex: 1 1 640px; min-width: 0; margin-top: 1em; line-height: 2; }
+
+    .content img { max-width: 100%; }
+
+    /* ----- Typography ----- */
+    h1, h2, h3, h4, h5, h6 {
+      margin: 1rem 0 .5rem;
+      font-family: var(--font-headings);
+      font-weight: 500;
+      line-height: 1.1;
+    }
+    h1 { font-size: 2.5rem; }
+    h2 { font-size: 2rem; }
+    h3 { font-size: 1.75rem; }
+
+    p { margin: 0 0 1rem; }
+
+    a { color: var(--dark-green); text-decoration: none; }
+    a:hover, a:focus { opacity: .9; text-decoration: underline; }
+
+    section { margin: 3em 0; font-size: large; line-height: 1.8; }
+
+    hr { border: 0; border-top: 1px solid rgba(0, 0, 0, .1); margin: 1rem 0; }
+
+    /* ----- Themed content elements ----- */
+    blockquote {
+      margin: 0;
+      padding: 1.2em;
+      border-left: 7px solid var(--dark-green);
+      background: rgba(9, 126, 116, .1);
+      font-style: normal;
+      font-size: inherit;
+    }
+
+    pre {
+      overflow: auto;
+      margin: 0 0 1rem;
+      padding: 1em;
+      border-left: 7px solid var(--acid-green);
+      background: var(--gray-lighter);
+      line-height: 1.2;
+      font-family: var(--font-mono);
+      font-size: .9rem;
+    }
+
+    code { padding: .1em .3em; background: var(--gray-lighter); border-radius: .2rem; }
+    pre code { padding: 0; background: none; }
+
+    table { border-collapse: collapse; width: 100%; margin-bottom: 1rem; }
+    th, td { padding: .5em .75em; border: 1px solid var(--gray-light); text-align: left; }
+    th { background: var(--gray-lighter); }
+
+    /* ----- Hero / banner (optional block) ----- */
+    .hero {
+      padding: 3rem 1rem;
+      background: var(--charcoal);
+      color: var(--white);
+      text-align: center;
+    }
+    .hero h1 {
+      margin: 0;
+      font-family: var(--font-body);
+      font-size: 4em;
+      text-shadow: 5px 5px 10px rgba(0, 0, 0, .5);
+    }
+    .hero .lead { margin: .5rem 0 0; font-size: 1.25rem; font-weight: 300; }
+    .hero a { color: var(--acid-green); border-bottom: 1px dotted; }
+    .hero a:hover { border-bottom: none; text-decoration: none; }
+
+    /* ----- Optional sidebar (module navigation) ----- */
+    .sidebar {
+      flex: 0 0 260px;
+      align-self: stretch;
+      padding-bottom: 10px;
+      background: var(--gray-lighter);
+      font-size: 15px;
+    }
+    .sidebar ul { margin: 0; padding: 0; list-style: none; }
+    .sidebar li { position: relative; transition: color .3s linear; }
+    .sidebar li a { display: block; padding: .8em .5em; color: var(--dark-green); text-transform: uppercase; }
+    .sidebar li:hover { background: var(--dark-green); }
+    .sidebar li:hover a { color: var(--white); text-decoration: none; }
+    .sidebar li.active { background: var(--white); }
+    .sidebar .sidebar-title {
+      margin: 0;
+      padding: .9em .5em;
+      color: var(--gray);
+      font-size: .8rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    /* ----- Footer ----- */
+    footer {
+      margin-top: auto;
+      padding: 2em 0;
+      background: var(--charcoal);
+      border-top: 4px solid var(--acid-green);
+      color: var(--gray-lighter);
+      text-align: center;
+      font-size: 12pt;
+    }
+    footer a {
+      color: var(--gray-snow);
+      border-bottom: 1px dotted;
+      text-decoration: none;
+      transition: all .3s linear;
+    }
+    footer a:hover, footer a:focus { color: var(--acid-green); border-bottom-color: transparent; text-decoration: none; }
+
+    /* ----- Responsive ----- */
+    @media (max-width: 768px) {
+      .sidebar { flex: 1 1 100%; }
+      .hero h1 { font-size: 2.6em; }
+      .content { flex: 1 1 100%; }
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <!-- ================= Hero / page banner (delete if not needed) ================= -->
+    <header class="hero">
+      <h1>Page title</h1>
+      <p class="lead">A short subtitle or one-line summary of this page.</p>
+    </header>
+
+    <div class="container">
+      <div class="layout">
+
+        <!-- ================= Sidebar (optional — delete for a single-column page) ================= -->
+        <aside class="sidebar">
+          <p class="sidebar-title">Contents</p>
+          <ul>
+            <li class="active"><a href="#">Section one</a></li>
+            <li><a href="#">Section two</a></li>
+            <li><a href="#">Section three</a></li>
+          </ul>
+        </aside>
+
+        <!-- ================= Main content ================= -->
+        <article class="content">
+          <section>
+            <h2>First section</h2>
+            <p>
+              Body text uses the Open Sans font at 18px. Replace this placeholder with your own
+              content. Links are styled in the theme's dark green —
+              <a href="#">like this one</a>.
+            </p>
+
+            <blockquote>
+              A highlighted callout. Useful for notes, warnings or key takeaways.
+            </blockquote>
+          </section>
+
+          <section>
+            <h2>Code and lists</h2>
+            <p>Inline code looks like <code>conda activate checkv</code>, and command blocks are preformatted:</p>
+<pre><code>seqfu stats -nbt combined_viruses.fna</code></pre>
+
+            <ul>
+              <li>First bullet</li>
+              <li>Second bullet</li>
+              <li>Third bullet</li>
+            </ul>
+
+            <table>
+              <thead>
+                <tr><th>File</th><th>Description</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>viruses.fna</code></td><td>Non-proviral sequences</td></tr>
+                <tr><td><code>proviruses.fna</code></td><td>Proviruses, host regions trimmed</td></tr>
+              </tbody>
+            </table>
+          </section>
+        </article>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- ================= Footer (kept from the course site) ================= -->
+  <footer>
+    <div class="container">
+      <p>
+        Made with &hearts; by scientists at the
+        <a href="https://quadram.ac.uk">Quadram Institute Bioscience</a>.
+        <a href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0 license</a>
+        &ndash; Built with <a href="https://course-in-a-box.p2pu.org">Course in a Box</a>
+        (<a href="https://www.p2pu.org">P2PU</a>)
+      </p>
+    </div>
+  </footer>
+</body>
+</html>
