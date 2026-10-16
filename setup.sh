@@ -167,6 +167,20 @@ fi
 check_sudo
 write_log "$TAG" "Check sudo"
 
+# Give the workshop user ownership of the Miniforge installation
+if [[ -d /var/lib/miniforge ]]; then
+    if sudo chown -R ubuntu:ubuntu /var/lib/miniforge; then
+        green_bold "OK" "Set ownership of /var/lib/miniforge to ubuntu:ubuntu"
+        write_log "$TAG" "miniforge chown - OK"
+    else
+        yellow_bold "WARN" "Could not change ownership of /var/lib/miniforge"
+        write_log "$TAG" "miniforge chown - failed"
+    fi
+else
+    yellow_bold "INFO" "/var/lib/miniforge not found, skipping chown"
+    write_log "$TAG" "miniforge chown - not found"
+fi
+
 # CHECK UBUNTU
 if grep "DISTRIB_DESCRIPTION" /etc/lsb-release > /dev/null 2> /dev/null; then
     green_bold "OK" "You are using $(grep DISTRIB_DESCRIPTION /etc/lsb-release | cut -f 2 -d '=')"
