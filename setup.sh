@@ -255,6 +255,17 @@ else
     fi
 fi
 
+# Set up .tmux.conf configuration
+if [[ ! -e ~/.tmux.conf ]]; then
+    if curl -o ~/.tmux.conf -sSL "https://gist.githubusercontent.com/telatin/34431aefae197284cecdb08f3017897f/raw/f522f744673598eb9219f2f85ebb0f5439fdcdfd/.tmux.conf"; then
+        green_bold "OK" "Installed .tmux.conf"
+    else
+        red_bold "WARNING" "Could not install .tmux.conf"
+    fi
+else
+    green_bold "OK" "You already have a ~/.tmux.conf, not overwriting it"
+fi
+
 # Add screen status check to bash prompt
 #check_and_append_in_screen
 
