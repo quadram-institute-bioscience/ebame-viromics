@@ -120,6 +120,19 @@ else
 fi
 
 }
+
+printf '\033[1;33m'
+cat <<'EOF'
+ _____ _                          
+|  ___| |                         
+| |__ | |__   __ _ _ __ ___   ___ 
+|  __|| '_ \ / _` | '_ ` _ \ / _ \\
+| |___| |_) | (_| | | | | | |  __/
+\____/|_.__/ \__,_|_| |_| |_|\___|
+                                  
+                                  
+EOF
+printf '\033[0m'
 echo -e "\033[1;32m---\t\033[0m EBAME-11 Virome Workshop ($VERSION) \033[1;32m---\033[0m \n"
 
 # Workshop main directory: prefer the dataset mounted by the VM image
