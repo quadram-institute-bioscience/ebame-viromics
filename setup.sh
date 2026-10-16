@@ -120,7 +120,7 @@ else
 fi
 
 }
-echo -e "\033[1;32m---\t\033[0m EBAME-10 Virome Workshop \033[1;32m---\033[0m \n"
+echo -e "\033[1;32m---\t\033[0m EBAME-11 Virome Workshop ($VERSION) \033[1;32m---\033[0m \n"
 
 # Workshop main directory: prefer the dataset mounted by the VM image
 VIROME1=/ifb/data/public/teachdata/ebame/viral-metagenomics
