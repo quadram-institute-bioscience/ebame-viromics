@@ -1,10 +1,10 @@
 
 #!/usr/bin/env bash
-
+VERSION=2.8
 # EBAME VM Setup Script
 # Author: Andrea Telatin
-# Year: 2025
-# Version: 2.6
+# Year: 2026
+# Version: 2.8
 
 # Description:
 # This script sets up Virtual Machines (VMs) for the EBAME (European Bioinformatics Array of Microbial Ecology) workshop,
@@ -72,7 +72,7 @@ write_log() {
     echo -e "$datetimestamp\t$message" >> /tmp/ebame-${tag}.log
 }
 
-write_log "$TAG" "Starting EBAME setup script"
+write_log "$TAG" "Starting EBAME setup script ($VERSION)"
 
 
 # Function to check for sudo privileges
@@ -209,6 +209,28 @@ if sudo apt install -y --quiet openjdk-21-jre-headless pipx unzip  bat visidata 
 else
     write_log "$TAG" "apt - failed"
     red_bold "ERROR" "unable to install requirements (you need unzip, visidata, libpcre3-dev)"
+fi
+
+# Optional tools: zoxide and fzf. Failures here are not critical.
+if sudo apt install -y --quiet zoxide fzf >/tmp/ebame-apt-tools.out 2>/tmp/ebame-apt-tools.err; then
+    write_log "$TAG" "apt tools - OK"
+    green_bold "OK" "Installed zoxide and fzf"
+else
+    write_log "$TAG" "apt tools - failed"
+    yellow_bold "INFO" "Could not install zoxide and fzf (not critical)"
+fi
+
+# Initialize zoxide in bash (only if zoxide is available)
+if command -v zoxide >/dev/null 2>&1; then
+    zoxide init bash >/dev/null 2>&1
+    if grep -q 'eval "$(zoxide init bash)"' ~/.bashrc; then
+        green_bold "OK" "zoxide already initialized in .bashrc"
+    else
+        echo 'eval "$(zoxide init bash)"' >> ~/.bashrc
+        green_bold "OK" "Initialized zoxide in .bashrc"
+    fi
+else
+    yellow_bold "INFO" "zoxide not found, skipping initialization"
 fi
 
 # Install seqfu
