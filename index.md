@@ -3,8 +3,8 @@ layout: index
 published: true
 ---
 
-> Viromics tutorial for the [**10th EBAME workshop**](https://maignienlab.gitlab.io/ebame/)
-> with Evelien Adriaenssens and Andrea Telatin
+> Viromics tutorial for the [**EBAME workshop**](https://maignienlab.gitlab.io/ebame/)
+> with Evelien Adriaenssens and Andrea Telatin.
 
 In this tutorial we will mine for phage sequences in a metagenome assembly.
 
