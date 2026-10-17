@@ -4,7 +4,7 @@
 # EBAME VM Setup Script
 # Author: Andrea Telatin
 # Year: 2025
-# Version: 2.6
+# Version: 2.6 - deprecated
 
 # Description:
 # This script sets up Virtual Machines (VMs) for the EBAME (European Bioinformatics Array of Microbial Ecology) workshop,

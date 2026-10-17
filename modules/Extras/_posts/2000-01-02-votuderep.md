@@ -5,7 +5,7 @@ published: true
 
 [CheckV]({{ site.baseurl }}/modules/Mining/2000-02-10-checkv) offers two scripts to perform the dereplication.
 
-For **EBAME 10** we packaged the two scripts (and some more) into a Python package
+For **EBAME (10 and beyond)** we packaged the two scripts (and some more) into a Python package
 called **votuderep**, that works with *subcommands*.
 
 ![votuderep]({{ site.baseurl }}{% link img/votuderep.png %})

@@ -1,0 +1,1247 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <!-- ===================================================================
+       Standalone TSV/CSV table template — inspired by the EBAME Viromics
+       course site (hero + single content column + dark footer).
+       No navbar, no sidebar: the whole page is about reading one table.
+
+       Everything needed to render the page lives in this file (inline
+       CSS + JS). Only the web fonts are optional/external — remove the
+       <link> below to keep the file 100% offline; it falls back to
+       system fonts.
+
+       -----------------------------------------------------------------
+       HOW TO GENERATE A PAGE FROM A .tsv / .csv FILE
+       -----------------------------------------------------------------
+       There is exactly ONE place to touch, at the bottom of <body>:
+
+         1. <script id="tsv-data" type="text/plain"> ...raw table... </script>
+            Paste the raw contents of your .tsv / .csv here (any delimiter,
+            with or without quotes). It is read as literal text, never
+            parsed as HTML, so it is safe.
+
+         2. <script>window.TSV_TABLE_CONFIG = { ... }; </script>
+            Fill in the title/subtitle/caption and, if you want, per-column
+            hints (type/align/hidden). Everything is optional — sensible
+            values are auto-detected from the data itself.
+
+       A generator script only needs to substitute those two blocks; the
+       rest of this file can be copied verbatim.
+
+       Features (all offline, no libraries):
+         · auto-detects delimiter (TAB, comma, semicolon, pipe) and header
+         · click a column header to sort (asc → desc), type-aware
+           (numbers sort numerically, dates chronologically)
+         · global search box: space = AND, "quoted phrase", -exclude and
+           column:value queries
+         · optional per-column filter row
+         · pagination + rows-per-page, sticky header, row numbers
+         · show/hide columns, export the current view as TSV
+         · shareable state via the URL hash (#q=…&sort=…&dir=…&page=…)
+       =================================================================== -->
+
+  <title>Data table · Viromics workshop</title>
+  <meta name="description" content="Searchable, sortable table generated from a TSV/CSV file.">
+
+  <!-- Optional: theme fonts (Saira for headings, Open Sans for text) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css?family=Saira:400,500,700|Open+Sans:400,700&display=swap">
+
+  <style>
+    /* ----- Theme palette (from _sass/p2pu-theme/_variables.scss) ----- */
+    :root {
+      --charcoal:     #2F3D46;
+      --dark-green:   #097E74;  /* primary accent */
+      --acid-green:   #B6BE00;  /* pairs with charcoal */
+      --gray-darker:  #515665;
+      --gray-dark:    #707782;
+      --gray:         #AAB0BF;
+      --gray-light:   #D3D8E6;
+      --gray-lighter: #F3F4F8;
+      --gray-snow:    #FCFCFC;
+      --white:        #fff;
+
+      --font-body:     "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      --font-headings: "Saira", "Exo 2", Helvetica, Arial, sans-serif;
+      --font-mono:     SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { height: 100%; }
+
+    /* Sticky footer: body is a column, main grows to fill the viewport */
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: var(--white);
+      color: var(--charcoal);
+      font-family: var(--font-body);
+      font-size: 18px;
+      line-height: 1.5;
+    }
+
+    main { flex: 1 0 auto; background: var(--white); }
+
+    /* ----- Layout ----- */
+    .container { width: 100%; max-width: 1140px; margin: 0 auto; padding: 0 15px; }
+
+    /* ----- Content column (single, wide, readable) ----- */
+    .content { width: 100%; margin-top: 1.5em; line-height: 1.7; }
+
+    /* ----- Typography ----- */
+    h1, h2, h3, h4, h5, h6 {
+      margin: 1rem 0 .5rem;
+      font-family: var(--font-headings);
+      font-weight: 500;
+      line-height: 1.1;
+    }
+    h1 { font-size: 2.5rem; }
+    h2 { font-size: 2rem; }
+
+    p { margin: 0 0 1rem; }
+
+    a { color: var(--dark-green); text-decoration: none; }
+    a:hover, a:focus { opacity: .9; text-decoration: underline; }
+
+    section { margin: 2em 0; }
+
+    /* ----- Hero / banner ----- */
+    .hero {
+      padding: 2.75rem 1rem;
+      background: var(--charcoal);
+      color: var(--white);
+      text-align: center;
+    }
+    .hero h1 {
+      margin: 0;
+      font-family: var(--font-body);
+      font-size: 3em;
+      text-shadow: 5px 5px 10px rgba(0, 0, 0, .5);
+    }
+    .hero .lead { margin: .5rem 0 0; font-size: 1.25rem; font-weight: 300; }
+
+    .table-caption {
+      margin: -.25rem 0 1rem;
+      color: var(--gray-darker);
+      font-size: 1rem;
+    }
+
+    /* Optional explanation / column glossary above the table */
+    .intro {
+      margin: 0 0 1.25rem;
+      padding: 1rem 1.25rem;
+      border-left: 5px solid var(--dark-green);
+      border-radius: 0 8px 8px 0;
+      background: rgba(9, 126, 116, .06);
+      font-size: .98rem;
+      line-height: 1.6;
+    }
+    .intro > :first-child { margin-top: 0; }
+    .intro > :last-child { margin-bottom: 0; }
+    .intro dl {
+      margin: .6rem 0 0;
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: .3rem .9rem;
+    }
+    .intro dt {
+      color: var(--dark-green);
+      font-family: var(--font-mono);
+      font-size: .84rem;
+      white-space: nowrap;
+    }
+    .intro dd { margin: 0; }
+    .intro .intro-foot {
+      margin: .7rem 0 0;
+      color: var(--gray-darker);
+      font-size: .92rem;
+    }
+    @media (max-width: 640px) {
+      .intro dl { grid-template-columns: 1fr; gap: .1rem; }
+      .intro dd { margin-bottom: .55rem; }
+    }
+
+    /* ===================== Table toolbar ===================== */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: .6rem;
+      margin-bottom: .75rem;
+    }
+
+    .search {
+      position: relative;
+      flex: 1 1 320px;
+      min-width: 200px;
+    }
+    .search input {
+      width: 100%;
+      padding: .55em .7em .55em 2.2em;
+      border: 1px solid var(--gray-light);
+      border-radius: 6px;
+      background: var(--white);
+      color: inherit;
+      font: inherit;
+      font-size: 1rem;
+    }
+    .search input:focus {
+      outline: none;
+      border-color: var(--dark-green);
+      box-shadow: 0 0 0 3px rgba(9, 126, 116, .18);
+    }
+    .search::before {
+      content: "";
+      position: absolute;
+      left: .7em;
+      top: 50%;
+      width: .85em;
+      height: .85em;
+      transform: translateY(-50%);
+      background: var(--gray-dark);
+      -webkit-mask: no-repeat center / contain
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M10 2a8 8 0 105.29 14.01l5.35 5.35 1.41-1.41-5.35-5.35A8 8 0 0010 2zm0 2a6 6 0 110 12 6 6 0 010-12z'/></svg>");
+              mask: no-repeat center / contain
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M10 2a8 8 0 105.29 14.01l5.35 5.35 1.41-1.41-5.35-5.35A8 8 0 0010 2zm0 2a6 6 0 110 12 6 6 0 010-12z'/></svg>");
+    }
+
+    .btn {
+      padding: .5em .85em;
+      border: 1px solid var(--gray-light);
+      border-radius: 6px;
+      background: var(--white);
+      color: var(--charcoal);
+      font: inherit;
+      font-size: .95rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s, border-color .15s;
+    }
+    .btn:hover { background: var(--gray-lighter); border-color: var(--gray); }
+    .btn:focus-visible { outline: 3px solid rgba(9, 126, 116, .35); outline-offset: 1px; }
+    .btn[disabled] { opacity: .45; cursor: default; }
+    .btn.toggle.on { background: var(--dark-green); border-color: var(--dark-green); color: var(--white); }
+
+    /* Dropdown menu (columns / help) */
+    details.menu { position: relative; }
+    details.menu > summary {
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
+    }
+    details.menu > summary::-webkit-details-marker { display: none; }
+    details.menu[open] > summary { background: var(--gray-lighter); border-color: var(--gray); }
+    .menu-panel {
+      position: absolute;
+      z-index: 20;
+      right: 0;
+      margin-top: .4rem;
+      min-width: 220px;
+      max-height: 320px;
+      overflow: auto;
+      padding: .5rem;
+      border: 1px solid var(--gray-light);
+      border-radius: 8px;
+      background: var(--white);
+      box-shadow: 0 10px 30px rgba(47, 61, 70, .18);
+    }
+    .menu-panel label {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .3rem .4rem;
+      border-radius: 4px;
+      font-size: .95rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .menu-panel label:hover { background: var(--gray-lighter); }
+    .menu-panel .menu-title {
+      padding: .3rem .4rem;
+      color: var(--gray-dark);
+      font-size: .75rem;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .menu-help { max-width: 340px; font-size: .9rem; line-height: 1.5; }
+    .menu-help code { white-space: nowrap; }
+
+    .count {
+      flex: 1 1 auto;
+      color: var(--gray-darker);
+      font-size: .95rem;
+      text-align: right;
+    }
+
+    /* ===================== Table ===================== */
+    .table-wrap {
+      max-height: 74vh;
+      overflow: auto;
+      border: 1px solid var(--gray-light);
+      border-radius: 8px;
+      background: var(--white);
+    }
+
+    table.data {
+      width: 100%;
+      margin: 0;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: .95rem;
+      line-height: 1.35;
+    }
+
+    table.data th,
+    table.data td {
+      padding: .5em .75em;
+      border-bottom: 1px solid var(--gray-light);
+      text-align: left;
+      white-space: nowrap;
+      vertical-align: top;
+    }
+
+    table.data thead th {
+      background: var(--gray-lighter);
+      font-family: var(--font-headings);
+      font-weight: 600;
+      color: var(--charcoal);
+    }
+    /* Only the FIRST header row is sticky; the filter row sticks just below it */
+    .table-wrap.sticky table.data thead tr.cols th {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      box-shadow: inset 0 -1px 0 var(--gray-light);
+    }
+    .table-wrap.sticky table.data thead tr.filters th {
+      position: sticky;
+      top: var(--th-h, 0px);
+      z-index: 2;
+      background: var(--white);
+    }
+
+    table.data thead tr.cols th.sortable { cursor: pointer; user-select: none; }
+    table.data thead tr.cols th.sortable:hover { background: var(--gray-light); }
+    table.data thead tr.cols th .th-label { vertical-align: middle; }
+    table.data thead tr.cols th .arrow {
+      display: inline-block;
+      width: 1em;
+      margin-left: .3em;
+      color: var(--gray);
+      font-size: .85em;
+    }
+    table.data thead tr.cols th[aria-sort="ascending"] .arrow,
+    table.data thead tr.cols th[aria-sort="descending"] .arrow { color: var(--dark-green); }
+    table.data thead tr.cols th[aria-sort] { background: #e7f1ef; }
+
+    table.data thead tr.filters th { padding: .3em .4em; }
+    table.data thead tr.filters input {
+      width: 100%;
+      min-width: 70px;
+      padding: .3em .45em;
+      border: 1px solid var(--gray-light);
+      border-radius: 4px;
+      background: var(--white);
+      color: inherit;
+      font: inherit;
+      font-size: .85rem;
+    }
+    table.data thead tr.filters input:focus {
+      outline: none;
+      border-color: var(--dark-green);
+      box-shadow: 0 0 0 2px rgba(9, 126, 116, .18);
+    }
+
+    table.data tbody tr:nth-child(even) { background: var(--gray-snow); }
+    table.data tbody tr:hover { background: #eaf4f2; }
+    table.data tbody td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    table.data tbody td.rownum,
+    table.data thead th.rownum {
+      width: 1%;
+      color: var(--gray-dark);
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    /* Reveal long cells on hover so wide tables stay compact */
+    table.data tbody td { max-width: 32ch; overflow: hidden; text-overflow: ellipsis; }
+    table.data tbody td:hover { max-width: none; overflow: visible; white-space: normal; }
+
+    .pager {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: .6rem;
+      margin-top: .75rem;
+      font-size: .95rem;
+    }
+    .pager .spacer { flex: 1 1 auto; }
+    .pager label { color: var(--gray-darker); white-space: nowrap; }
+    .pager select {
+      padding: .35em .5em;
+      border: 1px solid var(--gray-light);
+      border-radius: 6px;
+      background: var(--white);
+      color: inherit;
+      font: inherit;
+      font-size: .95rem;
+    }
+    .pager .page-info { color: var(--gray-darker); white-space: nowrap; }
+    .no-results { padding: 2.5rem 1rem; color: var(--gray-dark); text-align: center; }
+
+    kbd {
+      padding: .1em .4em;
+      border: 1px solid var(--gray-light);
+      border-bottom-width: 2px;
+      border-radius: 4px;
+      background: var(--gray-lighter);
+      font-family: var(--font-mono);
+      font-size: .85em;
+    }
+
+    /* ----- Footer ----- */
+    footer {
+      margin-top: auto;
+      padding: 2em 0;
+      background: var(--charcoal);
+      border-top: 4px solid var(--acid-green);
+      color: var(--gray-lighter);
+      text-align: center;
+      font-size: 12pt;
+    }
+    footer a {
+      color: var(--gray-snow);
+      border-bottom: 1px dotted;
+      text-decoration: none;
+      transition: all .3s linear;
+    }
+    footer a:hover, footer a:focus { color: var(--acid-green); border-bottom-color: transparent; text-decoration: none; }
+
+    /* ----- Responsive ----- */
+    @media (max-width: 768px) {
+      .hero { padding: 2rem 1rem; }
+      .hero h1 { font-size: 2.1em; }
+      .count { flex-basis: 100%; text-align: left; }
+      .table-wrap { max-height: 65vh; }
+      table.data { font-size: .9rem; }
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <!-- ================= Hero / page banner ================= -->
+    <header class="hero">
+      <h1 id="page-title">Data table</h1>
+      <p class="lead" id="page-subtitle">Searchable and sortable view of a TSV/CSV file.</p>
+    </header>
+
+    <div class="container">
+      <article class="content">
+        <section id="table-section">
+          <p class="table-caption" id="table-caption" hidden></p>
+
+          <!-- Optional explanation / column glossary (see config.intro) -->
+          <section class="intro" id="intro" hidden></section>
+
+          <!-- ================= Toolbar ================= -->
+          <div class="toolbar">
+            <div class="search" id="search-wrap">
+              <input id="search" type="search" autocomplete="off" spellcheck="false"
+                     placeholder="Search all columns…  ( -word to exclude, &quot;exact phrase&quot;, column:value )"
+                     aria-label="Search table">
+            </div>
+
+            <button class="btn toggle" id="filters-toggle" type="button" aria-pressed="false">Column filters</button>
+
+            <details class="menu" id="columns-menu">
+              <summary class="btn" role="button" aria-label="Show or hide columns">Columns ▾</summary>
+              <div class="menu-panel" id="columns-panel"></div>
+            </details>
+
+            <details class="menu">
+              <summary class="btn" role="button" aria-label="Search syntax help">How to search</summary>
+              <div class="menu-panel menu-help">
+                <p style="margin:.3rem .4rem"><strong>Space</strong> between terms means <em>and</em>:<br>
+                  <code>phage crAss</code> → rows containing both.</p>
+                <p style="margin:.3rem .4rem"><strong>-word</strong> excludes rows containing it.</p>
+                <p style="margin:.3rem .4rem"><strong>"exact phrase"</strong> (with quotes) matches the whole string.</p>
+                <p style="margin:.3rem .4rem"><strong>column:value</strong> searches one column only, e.g. <code>host:pseudomonas</code> (case-insensitive text match).</p>
+                <p style="margin:.3rem .4rem; color:var(--gray-dark)">Shortcuts: <kbd>/</kbd> focus search · <kbd>Esc</kbd> clear.</p>
+              </div>
+            </details>
+
+            <button class="btn" id="export" type="button">Export view</button>
+            <button class="btn" id="reset" type="button">Reset</button>
+
+            <span class="count" id="count" aria-live="polite"></span>
+          </div>
+
+          <!-- ================= Table ================= -->
+          <div class="table-wrap sticky" id="table-wrap">
+            <table class="data" id="data-table">
+              <thead></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <!-- ================= Pagination ================= -->
+          <div class="pager">
+            <label>Rows per page
+              <select id="page-size"></select>
+            </label>
+            <button class="btn" id="prev" type="button">‹ Prev</button>
+            <span class="page-info" id="page-info"></span>
+            <button class="btn" id="next" type="button">Next ›</button>
+          </div>
+
+          <noscript>
+            <p><strong>JavaScript is disabled.</strong> This page renders its table client-side; enable
+            JavaScript to search, sort and page through the data.</p>
+          </noscript>
+        </section>
+      </article>
+    </div>
+  </main>
+
+  <!-- ================= Footer ================= -->
+  <footer>
+    <div class="container">
+      <p>
+        Made with &hearts; by scientists at the
+        <a href="https://quadram.ac.uk">Quadram Institute Bioscience</a>.
+        <a href="http://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0 license</a>
+        &ndash; Built with <a href="https://course-in-a-box.p2pu.org">Course in a Box</a>
+        (<a href="https://www.p2pu.org">P2PU</a>)
+      </p>
+    </div>
+  </footer>
+
+  <!-- ===================================================================
+       DATA — replace the sample below with the raw contents of your file.
+       Any delimiter works; quotes are handled. Never parsed as HTML.
+       =================================================================== -->
+  <script id="tsv-data" type="text/plain">Contig	Length	Coverage	Completeness	Contamination	Viral_genes	Host	Taxonomy
+UViG_00001	124531	87.4	98.2	0	142	Escherichia phage	Caudoviricetes; Vequintavirinae
+UViG_00002	98422	41.9	91.6	1.4	118	Escherichia phage	Autographiviridae
+UViG_00003	76210	128.3	99.1	0	97	Salmonella phage	Caudoviricetes
+UViG_00004	52118	12.7	54.3	8.9	44		Inoviridae
+UViG_00005	43109	203.6	100	0	61	Pseudomonas phage	Caudoviricetes; Phikzvirus
+UViG_00006	38970	9.1	33.2	14.7	31		Microviridae
+UViG_00007	36442	77.5	96.8	0.3	52	Klebsiella phage	Autographiviridae
+UViG_00008	31908	156.2	100	0	47	Enterobacteria phage	Caudoviricetes
+UViG_00009	28775	3.4	12.1	21.5	12		
+UViG_00010	27650	64.8	88.4	2.1	39	Vibrio phage	Caudoviricetes
+UViG_00011	26004	101.9	99.7	0	41	Escherichia phage	Inoviridae
+UViG_00012	24931	58.2	95.3	0.7	38	Salmonella phage	Caudoviricetes
+UViG_00013	22318	18.6	71.2	5.4	27		Podoviridae
+UViG_00014	21077	147.5	100	0	33	Pseudomonas phage	Caudoviricetes
+UViG_00015	19850	7.3	28.8	17.2	15		
+UViG_00016	18624	93.1	97.4	1.1	30	Klebsiella phage	Autographiviridae
+UViG_00017	17445	35.9	82.6	3.8	24		Microviridae
+UViG_00018	16230	210.4	100	0	28	Escherichia phage	Caudoviricetes
+UViG_00019	15488	44.7	90.1	2.6	22	Enterobacteria phage	Caudoviricetes
+UViG_00020	14302	26.1	76.9	6.3	19		Inoviridae
+UViG_00021	13276	118.8	99.2	0	24	Salmonella phage	Caudoviricetes
+UViG_00022	12105	5.9	19.4	25.8	8		
+UViG_00023	11488	69.3	94.7	1.9	21	Vibrio phage	Caudoviricetes
+UViG_00024	10762	31.5	85.8	4.2	17		Autographiviridae</script>
+
+  <!-- ===================================================================
+       CONFIG — the only block a generator needs to fill in besides the
+       data above. Everything here is optional.
+       =================================================================== -->
+  <script>
+    window.TSV_TABLE_CONFIG = {
+      title:    "Viral contigs — assembly QC",
+      subtitle: "Searchable, sortable overview of the recovered viral sequences.",
+      caption:  "Sample data shown for demonstration. Replace the #tsv-data block with your own file.",
+      intro:    "",   // optional HTML shown above the table (paragraph + <dl> glossary)
+
+      // Parsing -------------------------------------------------------
+      delimiter: "auto",   // "auto" | "\t" | "," | ";" | "|"
+      header:    true,     // true | false | "auto" (first row is the header)
+      source:    "",       // optional URL/path to fetch instead of inline data
+      data:      null,     // inline string; null = read the #tsv-data block
+
+      // View ----------------------------------------------------------
+      pageSize:   25,                        // default rows per page (0 = all)
+      pageSizes:  [25, 50, 100, 250, 0],     // options in the "rows per page" menu
+      search:         true,
+      filters:        true,   // show the per-column filter row by default
+      columnToggle:   true,
+      exportButton:   true,
+      rowNumbers:     true,
+      stickyHeader:   true,
+      hero:           true,   // show the banner with title + subtitle
+
+      // Optional per-column hints (keyed by header name or index) ----
+      columns: {
+        // "Length":       { type: "number", align: "right" },
+        // "Completeness": { type: "number" },
+        // "Taxonomy":     { wrap: true },     // let long cells wrap instead of ellipsis
+        // "Contig":       { hidden: true }
+      }
+    };
+  </script>
+
+  <!-- ===================================================================
+       ENGINE — no need to edit below this line.
+       =================================================================== -->
+  <script>
+    (function () {
+      "use strict";
+
+      /* ----------------------------- config ----------------------------- */
+      var CFG = Object.assign({
+        title: "Data table", subtitle: "", caption: "", intro: "",
+        delimiter: "auto", header: true, source: "", data: null,
+        pageSize: 25, pageSizes: [25, 50, 100, 250, 0],
+        search: true, filters: false, columnToggle: true, exportButton: true,
+        rowNumbers: true, stickyHeader: true, hero: true, columns: {}
+      }, window.TSV_TABLE_CONFIG || {});
+
+      var NUM_RE  = /^[-+]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?(?:[eE][-+]?\d+)?%?$/;
+      var DATE_RE = /^\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}(?::\d{2})?)?$/;
+
+      var state = {
+        q: "",
+        tokens: [],
+        colFilters: {},
+        sortCol: null,
+        sortDir: 1,
+        page: 1,
+        pageSize: CFG.pageSize,
+        hidden: {},          // column index -> true
+        filtersOn: !!CFG.filters
+      };
+
+      var model = { columns: [], rows: [], headers: [] };
+
+      /* ------------------------- DOM references ------------------------- */
+      var $ = function (id) { return document.getElementById(id); };
+      var table    = $("data-table");
+      var thead    = table.tHead;
+      var tbody    = table.tBodies[0];
+      var wrap     = $("table-wrap");
+      var searchEl = $("search");
+      var countEl  = $("count");
+      var pageInfo = $("page-info");
+      var prevBtn  = $("prev");
+      var nextBtn  = $("next");
+      var sizeSel  = $("page-size");
+
+      /* ============================== parsing =========================== */
+      function parseDelimited(text, delim) {
+        var rows = [], row = [], field = "", i = 0, inQuotes = false, c;
+        for (; i < text.length; i++) {
+          c = text[i];
+          if (inQuotes) {
+            if (c === '"') {
+              if (text[i + 1] === '"') { field += '"'; i++; }
+              else { inQuotes = false; }
+            } else { field += c; }
+            continue;
+          }
+          if (c === '"') { inQuotes = true; continue; }
+          if (c === delim) { row.push(field); field = ""; continue; }
+          if (c === "\r") { continue; }
+          if (c === "\n") { row.push(field); rows.push(row); row = []; field = ""; continue; }
+          field += c;
+        }
+        if (field !== "" || row.length) { row.push(field); rows.push(row); }
+        // drop trailing blank rows
+        while (rows.length && rows[rows.length - 1].every(function (v) { return v === ""; })) rows.pop();
+        return rows;
+      }
+
+      function detectDelimiter(text) {
+        var lines = text.split(/\r?\n/).filter(function (l) { return l.trim() !== ""; }).slice(0, 20);
+        if (!lines.length) return "\t";
+        var sample = lines.join("\n");
+        var candidates = ["\t", ",", ";", "|"], best = "\t", bestScore = 0;
+        candidates.forEach(function (d) {
+          var counts = parseDelimited(sample, d).map(function (r) { return r.length; });
+          if (!counts.length) return;
+          // modal field count across the sampled lines
+          var freq = {}, mode = 0, modeN = 0;
+          counts.forEach(function (n) {
+            freq[n] = (freq[n] || 0) + 1;
+            if (freq[n] > modeN) { modeN = freq[n]; mode = n; }
+          });
+          if (mode <= 1) return;
+          var consistency = modeN / counts.length;
+          // The delimiter must split the header row the same way as the body.
+          // This stops delimiters that appear inside values (e.g. ";" in a
+          // lineage field) from beating the real column separator.
+          var headerOk = counts[0] === mode;
+          var score = mode * consistency * (headerOk ? 1 : 0.4);
+          if (score > bestScore) { bestScore = score; best = d; }
+        });
+        return best;
+      }
+
+      function isNumeric(v) {
+        v = String(v).trim();
+        return v !== "" && NUM_RE.test(v);
+      }
+      function isDate(v) {
+        v = String(v).trim();
+        return v !== "" && DATE_RE.test(v);
+      }
+      function toNum(v) { return parseFloat(String(v).replace(/[,\s%]/g, "")) || 0; }
+
+      function detectHeader(rows) {
+        if (rows.length < 2) return false;
+        var a = rows[0], b = rows[1], n = Math.min(a.length, b.length), na = 0, nb = 0;
+        for (var i = 0; i < n; i++) { if (isNumeric(a[i])) na++; if (isNumeric(b[i])) nb++; }
+        return nb > na && nb > 0;
+      }
+
+      function columnType(values) {
+        var vals = values.filter(function (v) { return String(v).trim() !== ""; });
+        if (!vals.length) return "string";
+        if (vals.every(isNumeric)) return "number";
+        if (vals.every(isDate)) return "date";
+        return "string";
+      }
+
+      /* ============================== model ============================= */
+      function buildModel(rawRows) {
+        var header = CFG.header;
+        if (header === "auto") header = detectHeader(rawRows);
+
+        var names, dataRows;
+        if (header) {
+          names = rawRows[0].map(String);
+          dataRows = rawRows.slice(1);
+        } else {
+          var n = rawRows.reduce(function (m, r) { return Math.max(m, r.length); }, 0);
+          names = [];
+          for (var k = 0; k < n; k++) names.push("Column " + (k + 1));
+          dataRows = rawRows;
+        }
+
+        var ncol = names.length;
+        dataRows = dataRows.map(function (r) {
+          var c = r.slice(0, ncol);
+          while (c.length < ncol) c.push("");
+          return c;
+        });
+
+        model.headers = names;
+        model.rows = dataRows;
+        model.columns = names.map(function (name, i) {
+          var ov = CFG.columns[name] || CFG.columns[i] || {};
+          var vals = dataRows.map(function (r) { return r[i]; });
+          var type = ov.type || columnType(vals);
+          return {
+            index: i,
+            name: name,
+            type: type,
+            align: ov.align || (type === "number" ? "right" : "left"),
+            wrap: !!ov.wrap,
+            hidden: !!ov.hidden
+          };
+        });
+        model.columns.forEach(function (c) { if (c.hidden) state.hidden[c.index] = true; });
+      }
+
+      function visibleColumns() {
+        return model.columns.filter(function (c) { return !state.hidden[c.index]; });
+      }
+
+      /* ============================== query ============================= */
+      function parseQuery(q) {
+        var out = [], i = 0, n = q.length;
+        while (i < n) {
+          while (i < n && /\s/.test(q.charAt(i))) i++;
+          if (i >= n) break;
+          var token = "";
+          while (i < n && !/\s/.test(q.charAt(i))) {
+            if (q.charAt(i) === '"') {
+              i++;
+              while (i < n && q.charAt(i) !== '"') { token += q.charAt(i); i++; }
+              if (i < n) i++; // skip closing quote
+            } else {
+              token += q.charAt(i); i++;
+            }
+          }
+          if (token !== "") out.push(token);
+        }
+        return out;
+      }
+
+      function columnIndexByName(name) {
+        var lower = name.toLowerCase();
+        for (var i = 0; i < model.headers.length; i++) {
+          if (model.headers[i].toLowerCase() === lower) return i;
+        }
+        return -1;
+      }
+
+      function rowMatchesTerms(cells) {
+        var tokens = state.tokens;
+        if (!tokens.length) return true;
+        var hay = cells.map(function (c) { return c.toLowerCase(); });
+        for (var t = 0; t < tokens.length; t++) {
+          var term = tokens[t], neg = false;
+          if (term.length > 1 && term.charAt(0) === "-") { neg = true; term = term.slice(1); }
+
+          var ok, ci = term.indexOf(":");
+          if (ci > 0) {
+            var col = columnIndexByName(term.slice(0, ci));
+            if (col >= 0) {
+              var needle = term.slice(ci + 1).toLowerCase();
+              ok = needle === "" || hay[col].indexOf(needle) !== -1;
+            } else {
+              ok = hay.some(function (h) { return h.indexOf(term.toLowerCase()) !== -1; });
+            }
+          } else {
+            var needle2 = term.toLowerCase();
+            ok = hay.some(function (h) { return h.indexOf(needle2) !== -1; });
+          }
+          if (neg ? ok : !ok) return false;
+        }
+        return true;
+      }
+
+      function rowMatchesFilters(cells) {
+        for (var key in state.colFilters) {
+          if (!Object.prototype.hasOwnProperty.call(state.colFilters, key)) continue;
+          var needle = state.colFilters[key];
+          if (!needle) continue;
+          if (String(cells[key]).toLowerCase().indexOf(needle.toLowerCase()) === -1) return false;
+        }
+        return true;
+      }
+
+      /* ========================= selection / sort ======================= */
+      function selectedIndices() {
+        var out = [], i;
+        for (i = 0; i < model.rows.length; i++) {
+          var cells = model.rows[i];
+          if (!rowMatchesTerms(cells)) continue;
+          if (!rowMatchesFilters(cells)) continue;
+          out.push(i);
+        }
+        var col = state.sortCol;
+        if (col !== null && col !== undefined) {
+          var type = model.columns[col].type, dir = state.sortDir;
+          out.sort(function (A, B) {
+            var a = model.rows[A][col], b = model.rows[B][col];
+            var ea = String(a).trim() === "", eb = String(b).trim() === "";
+            if (ea && eb) return A - B;
+            if (ea) return 1;          // blanks always last
+            if (eb) return -1;
+            var r;
+            if (type === "number") r = toNum(a) - toNum(b);
+            else if (type === "date") r = new Date(a) - new Date(b);
+            else r = String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: "base" });
+            if (r === 0) r = A - B;
+            return r * dir;
+          });
+        }
+        return out;
+      }
+
+      /* ============================== render =========================== */
+      function buildHead() {
+        var tr = document.createElement("tr");
+        tr.className = "cols";
+
+        if (CFG.rowNumbers) {
+          var rn = document.createElement("th");
+          rn.className = "rownum";
+          rn.scope = "col";
+          rn.textContent = "#";
+          tr.appendChild(rn);
+        }
+
+        model.columns.forEach(function (col) {
+          if (state.hidden[col.index]) return;
+          var th = document.createElement("th");
+          th.scope = "col";
+          th.dataset.col = col.index;
+          th.setAttribute("aria-sort", "none");
+          th.classList.add("sortable");
+          th.title = "Sort by " + col.name;
+          var label = document.createElement("span");
+          label.className = "th-label";
+          label.textContent = col.name;
+          var arrow = document.createElement("span");
+          arrow.className = "arrow";
+          arrow.textContent = "↕";
+          th.appendChild(label);
+          th.appendChild(arrow);
+          th.addEventListener("click", function () { toggleSort(col.index); });
+          tr.appendChild(th);
+        });
+        thead.appendChild(tr);
+
+        if (state.filtersOn && CFG.filters) {
+          var ftr = document.createElement("tr");
+          ftr.className = "filters";
+          if (CFG.rowNumbers) ftr.appendChild(document.createElement("th"));
+          model.columns.forEach(function (col) {
+            if (state.hidden[col.index]) return;
+            var th = document.createElement("th");
+            var input = document.createElement("input");
+            input.type = "text";
+            input.placeholder = "filter…";
+            input.value = state.colFilters[col.index] || "";
+            input.setAttribute("aria-label", "Filter column " + col.name);
+            input.addEventListener("input", function () {
+              if (input.value) state.colFilters[col.index] = input.value;
+              else delete state.colFilters[col.index];
+              state.page = 1;
+              renderBody();
+            });
+            th.appendChild(input);
+            ftr.appendChild(th);
+          });
+          thead.appendChild(ftr);
+        }
+        measureHead();
+      }
+
+      function rebuildHead() {
+        thead.textContent = "";
+        buildHead();
+      }
+
+      function measureHead() {
+        if (!CFG.stickyHeader) return;
+        var tr = thead.querySelector("tr.cols");
+        if (tr) wrap.style.setProperty("--th-h", tr.offsetHeight + "px");
+      }
+
+      var lastSelection = [];
+      function renderBody() {
+        var selection = selectedIndices();
+        lastSelection = selection;
+
+        var total = model.rows.length;
+        var filtered = selection.length;
+        var ps = state.pageSize > 0 ? state.pageSize : filtered || 1;
+        var pages = Math.max(1, Math.ceil(filtered / ps));
+        if (state.page > pages) state.page = pages;
+        if (state.page < 1) state.page = 1;
+        var start = (state.page - 1) * ps;
+        var slice = selection.slice(start, start + ps);
+
+        // header sort indicators
+        Array.prototype.forEach.call(thead.querySelectorAll("tr.cols th[data-col]"), function (th) {
+          var c = +th.dataset.col;
+          th.setAttribute("aria-sort",
+            c === state.sortCol ? (state.sortDir === 1 ? "ascending" : "descending") : "none");
+          th.querySelector(".arrow").textContent =
+            c === state.sortCol ? (state.sortDir === 1 ? "↑" : "↓") : "↕";
+        });
+
+        // body
+        var frag = document.createDocumentFragment();
+        slice.forEach(function (rowIndex, n) {
+          var cells = model.rows[rowIndex];
+          var tr = document.createElement("tr");
+          if (CFG.rowNumbers) {
+            var td0 = document.createElement("td");
+            td0.className = "rownum";
+            td0.textContent = start + n + 1;
+            tr.appendChild(td0);
+          }
+          model.columns.forEach(function (col) {
+            if (state.hidden[col.index]) return;
+            var td = document.createElement("td");
+            var val = cells[col.index] == null ? "" : cells[col.index];
+            if (col.align === "right") td.className = "num";
+            if (col.wrap) {
+              td.style.whiteSpace = "normal";
+              td.style.maxWidth = "none";
+              td.style.overflow = "visible";
+              td.style.textOverflow = "clip";
+            }
+            td.textContent = val;
+            td.title = val;               // full value on hover
+            tr.appendChild(td);
+          });
+          frag.appendChild(tr);
+        });
+
+        tbody.textContent = "";
+        if (!slice.length) {
+          var trEmpty = document.createElement("tr");
+          var tdEmpty = document.createElement("td");
+          tdEmpty.className = "no-results";
+          tdEmpty.colSpan = visibleColumns().length + (CFG.rowNumbers ? 1 : 0);
+          tdEmpty.textContent = "No rows match the current query.";
+          trEmpty.appendChild(tdEmpty);
+          tbody.appendChild(trEmpty);
+        } else {
+          tbody.appendChild(frag);
+        }
+
+        // count
+        var range = filtered ? (start + 1) + "–" + (start + slice.length) : "0";
+        var text = "Showing " + range + " of " + filtered.toLocaleString() + " rows";
+        if (filtered !== total) text += " (filtered from " + total.toLocaleString() + ")";
+        countEl.textContent = text;
+
+        // pager
+        pageInfo.textContent = "Page " + state.page + " / " + pages;
+        prevBtn.disabled = state.page <= 1;
+        nextBtn.disabled = state.page >= pages;
+
+        syncURL();
+      }
+
+      function buildColumnPanel() {
+        var panel = $("columns-panel");
+        var title = document.createElement("div");
+        title.className = "menu-title";
+        title.textContent = "Visible columns";
+        panel.appendChild(title);
+
+        var all = document.createElement("label");
+        var allCb = document.createElement("input");
+        allCb.type = "checkbox";
+        allCb.id = "col-all";
+        allCb.checked = true;
+        all.addEventListener("click", function (e) { e.stopPropagation(); });
+        allCb.addEventListener("change", function () {
+          model.columns.forEach(function (c) {
+            if (allCb.checked) delete state.hidden[c.index];
+            else { state.hidden[c.index] = true; delete state.colFilters[c.index]; }
+          });
+          refreshColumnChecks();
+          rebuildHead();
+          renderBody();
+        });
+        all.appendChild(allCb);
+        all.appendChild(document.createTextNode("Show all"));
+        panel.appendChild(all);
+
+        model.columns.forEach(function (col) {
+          var label = document.createElement("label");
+          var cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.checked = !state.hidden[col.index];
+          cb.dataset.col = col.index;
+          cb.addEventListener("change", function () {
+            if (cb.checked) delete state.hidden[col.index];
+            else { state.hidden[col.index] = true; delete state.colFilters[col.index]; }
+            refreshColumnChecks();
+            rebuildHead();
+            renderBody();
+          });
+          label.addEventListener("click", function (e) { e.stopPropagation(); });
+          label.appendChild(cb);
+          label.appendChild(document.createTextNode(col.name));
+          panel.appendChild(label);
+        });
+      }
+
+      function refreshColumnChecks() {
+        var panel = $("columns-panel");
+        if (!panel) return;
+        var boxes = panel.querySelectorAll("input[data-col]");
+        Array.prototype.forEach.call(boxes, function (cb) {
+          cb.checked = !state.hidden[+cb.dataset.col];
+        });
+        var all = $("col-all");
+        if (all) all.checked = model.columns.every(function (c) { return !state.hidden[c.index]; });
+      }
+
+      function toggleSort(col) {
+        if (state.sortCol === col) {
+          state.sortDir = -state.sortDir;
+        } else {
+          state.sortCol = col;
+          state.sortDir = 1;
+        }
+        renderBody();
+      }
+
+      /* ============================== export =========================== */
+      function exportView() {
+        var cols = visibleColumns();
+        var lines = [cols.map(function (c) { return c.name; }).join("\t")];
+        lastSelection.forEach(function (rowIndex) {
+          lines.push(cols.map(function (c) {
+            var v = model.rows[rowIndex][c.index] == null ? "" : model.rows[rowIndex][c.index];
+            return v.replace(/\t/g, " ").replace(/\r?\n/g, " ");
+          }).join("\t"));
+        });
+        var blob = new Blob([lines.join("\n") + "\n"], { type: "text/tab-separated-values" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = (CFG.title || "table").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-view.tsv";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      }
+
+      /* =============================== URL ============================= */
+      function syncURL() {
+        try {
+          var p = new URLSearchParams();
+          if (state.q) p.set("q", state.q);
+          if (state.sortCol !== null && state.sortCol !== undefined) {
+            p.set("sort", model.columns[state.sortCol].name);
+            p.set("dir", state.sortDir === 1 ? "asc" : "desc");
+          }
+          if (state.page > 1) p.set("page", state.page);
+          var hash = p.toString();
+          history.replaceState(null, "", hash ? "#" + hash : location.pathname + location.search);
+        } catch (e) { /* file:// or restricted — ignore */ }
+      }
+
+      function readURL() {
+        var hash = location.hash.replace(/^#/, "");
+        if (!hash) return;
+        var p = new URLSearchParams(hash);
+        if (p.get("q")) { state.q = p.get("q"); searchEl.value = state.q; state.tokens = parseQuery(state.q); }
+        if (p.get("sort")) {
+          var col = columnIndexByName(p.get("sort"));
+          if (col >= 0) { state.sortCol = col; state.sortDir = p.get("dir") === "desc" ? -1 : 1; }
+        }
+        if (p.get("page")) state.page = Math.max(1, parseInt(p.get("page"), 10) || 1);
+      }
+
+      /* ============================== wiring =========================== */
+      function wire() {
+        searchEl.addEventListener("input", function () {
+          state.q = searchEl.value;
+          state.tokens = parseQuery(state.q);
+          state.page = 1;
+          renderBody();
+        });
+
+        document.addEventListener("keydown", function (e) {
+          var tag = (e.target.tagName || "").toLowerCase();
+          if (e.key === "/" && tag !== "input" && tag !== "textarea" && searchEl.offsetParent !== null) {
+            e.preventDefault();
+            searchEl.focus();
+          } else if (e.key === "Escape" && document.activeElement === searchEl) {
+            searchEl.value = "";
+            state.q = "";
+            state.tokens = [];
+            state.page = 1;
+            renderBody();
+          }
+        });
+
+        prevBtn.addEventListener("click", function () { state.page--; renderBody(); });
+        nextBtn.addEventListener("click", function () { state.page++; renderBody(); });
+
+        sizeSel.addEventListener("change", function () {
+          state.pageSize = parseInt(sizeSel.value, 10);
+          state.page = 1;
+          renderBody();
+        });
+
+        var filtersBtn = $("filters-toggle");
+        filtersBtn.addEventListener("click", function () {
+          state.filtersOn = !state.filtersOn;
+          filtersBtn.classList.toggle("on", state.filtersOn);
+          filtersBtn.setAttribute("aria-pressed", String(state.filtersOn));
+          if (!state.filtersOn) state.colFilters = {};
+          thead.textContent = "";
+          buildHead();
+          renderBody();
+        });
+
+        $("reset").addEventListener("click", function () {
+          state.q = ""; state.tokens = []; state.colFilters = {}; state.sortCol = null;
+          state.sortDir = 1; state.page = 1; state.hidden = {};
+          model.columns.forEach(function (c) { if (c.hidden) state.hidden[c.index] = true; });
+          searchEl.value = "";
+          Array.prototype.forEach.call(thead.querySelectorAll("tr.filters input"), function (i) { i.value = ""; });
+          refreshColumnChecks();
+          renderBody();
+        });
+
+        if (CFG.exportButton) $("export").addEventListener("click", exportView);
+
+        window.addEventListener("resize", measureHead);
+      }
+
+      /* =============================== init ============================ */
+      function applyConfigVisibility() {
+        if (!CFG.search) $("search-wrap").style.display = "none";
+        if (!CFG.filters) $("filters-toggle").style.display = "none";
+        else {
+          var fb = $("filters-toggle");
+          fb.classList.toggle("on", state.filtersOn);
+          fb.setAttribute("aria-pressed", String(state.filtersOn));
+        }
+        if (!CFG.columnToggle) $("columns-menu").style.display = "none";
+        if (!CFG.exportButton) $("export").style.display = "none";
+        if (!CFG.hero) document.querySelector(".hero").style.display = "none";
+        if (!CFG.stickyHeader) wrap.classList.remove("sticky");
+
+        if (CFG.title) document.title = CFG.title;
+        var h1 = $("page-title");
+        if (CFG.title) h1.textContent = CFG.title;
+        var lead = $("page-subtitle");
+        if (CFG.subtitle) lead.textContent = CFG.subtitle; else lead.style.display = "none";
+        var cap = $("table-caption");
+        if (CFG.caption) { cap.textContent = CFG.caption; cap.hidden = false; }
+
+        var intro = $("intro");
+        if (CFG.intro) { intro.innerHTML = CFG.intro; intro.hidden = false; }
+
+        // page-size options
+        CFG.pageSizes.forEach(function (n) {
+          var o = document.createElement("option");
+          o.value = n;
+          o.textContent = n === 0 ? "All" : n;
+          if (n === state.pageSize) o.selected = true;
+          sizeSel.appendChild(o);
+        });
+        if (!CFG.pageSizes.some(function (n) { return n === state.pageSize; })) {
+          var o = document.createElement("option");
+          o.value = state.pageSize;
+          o.textContent = state.pageSize;
+          o.selected = true;
+          sizeSel.appendChild(o);
+        }
+      }
+
+      function start(rawText) {
+        var delim = CFG.delimiter === "auto" ? detectDelimiter(rawText) : CFG.delimiter;
+        buildModel(parseDelimited(rawText, delim));
+        buildHead();
+        if (CFG.columnToggle) buildColumnPanel();
+        readURL();
+        renderBody();
+        wire();
+      }
+
+      function init() {
+        applyConfigVisibility();
+        var inline = (CFG.data != null) ? CFG.data : (document.getElementById("tsv-data").textContent || "");
+        if (CFG.source) {
+          fetch(CFG.source).then(function (r) { return r.text(); })
+            .then(function (t) { start(t); })
+            .catch(function () { start(inline); });   // file:// fallback to inline
+        } else {
+          start(inline);
+        }
+      }
+
+      if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+      else init();
+    })();
+  </script>
+</body>
+</html>
